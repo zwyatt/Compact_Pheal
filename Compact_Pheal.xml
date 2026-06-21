@@ -100,7 +100,7 @@ function prefresh_trigger_capture(name, line, args)
 end
 
 function sheal_trigger_capture(name, line, args)
-   sheal = sheal + string.match(line, "%[(%d*)]")
+   sheal = sheal + string.match(line, "%[(%d*)]$")
 end
 
 function srefresh_trigger_capture(name, line, args)
