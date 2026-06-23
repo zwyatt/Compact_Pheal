@@ -112,12 +112,7 @@
       sequence="102"
       script="blank_trigger"
       send_to="12"
-   >
-      <send>
-         EnableTrigger("blank", false)
-         EnableTrigger("full", false)
-      </send>
-   </trigger>
+   />
    <trigger
       name="full"
       enabled="n"
@@ -188,8 +183,7 @@ function pheal_trigger_end()
 end
 
 function blank_trigger(name, line, args)
-   print("sheal_count: " .. sheal_count)
-   if sheal_count > 0 then
+   if sheal_count > 1 then
       DeleteLines(1)
    end
 end
