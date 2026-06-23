@@ -14,7 +14,7 @@
    purpose="Reduce pheal spam"
    date_written="2026-06-19 20:59:14"
    requires="5.07"
-   version="1.0"
+   version="1.1"
    >
    <description trim="y">
       <![CDATA[
@@ -36,7 +36,13 @@
       omit_from_output="y"
       sequence="100"
       script="pheal_trigger_capture"
-   />
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
    <trigger
       name="prefresh_capture"
       enabled="y"
@@ -45,7 +51,13 @@
       omit_from_output="y"
       sequence="100"
       script="prefresh_trigger_capture"
-   />
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
    <trigger
       name="sheal_capture"
       enabled="y"
@@ -54,7 +66,13 @@
       omit_from_output="y"
       sequence="100"
       script="sheal_trigger_capture"
-   />
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", true)
+         EnableTrigger("full", true)
+      </send>
+   </trigger>
    <trigger
       name="srefresh_capture"
       enabled="y"
@@ -63,7 +81,13 @@
       omit_from_output="y"
       sequence="100"
       script="srefresh_trigger_capture"
-   />
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
    <trigger
       name="pheal_end"
       enabled="y"
@@ -72,7 +96,43 @@
       omit_from_output="n"
       sequence="101"
       script="pheal_trigger_end"
-   />
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
+   <trigger
+      name="blank"
+      enabled="n"
+      match="^$"
+      regexp="y"
+      omit_from_output="n"
+      sequence="102"
+      script="blank_trigger"
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
+   <trigger
+      name="full"
+      enabled="n"
+      match="^.*$"
+      regexp="y"
+      omit_from_output="n"
+      sequence="102"
+      script="full_trigger"
+      send_to="12"
+   >
+      <send>
+         EnableTrigger("blank", false)
+         EnableTrigger("full", false)
+      </send>
+   </trigger>
 </triggers>
 
 
@@ -86,6 +146,7 @@ pheal = 0
 prefresh = 0
 sheal = 0
 srefresh = 0
+sheal_count = 0
 
 function colorsToAnsiNote(data)
   return AnsiNote(ColoursToANSI(data))
@@ -93,31 +154,48 @@ end
 
 function pheal_trigger_capture(name, line, args)
    pheal = pheal + string.match(line, "%[(%d*)]$")
+   sheal_count = 0
 end
 
 function prefresh_trigger_capture(name, line, args)
    prefresh = prefresh + string.match(line, "%[(%d*)]$")
+   sheal_count = 0
 end
 
 function sheal_trigger_capture(name, line, args)
    sheal = sheal + string.match(line, "%[(%d*)]$")
+   sheal_count = sheal_count + 1
 end
 
 function srefresh_trigger_capture(name, line, args)
    srefresh = srefresh + string.match(line, "%[(%d*)]$")
+   sheal_count = 0
 end
 
 function pheal_trigger_end()
    report = ""
 
    if pheal > 0 or sheal > 0 or prefresh > 0 or srefresh > 0 then
-      report = "@wIn: @G[@W".. sheal .. "@G] @C[@W" .. srefresh .. "@C] @w<> @wOut: @G[@W".. pheal .. "@G] @C[@W" .. prefresh .. "@C]"
+      report = "@w<< In: @G[@W".. sheal .. "@G] @w| @C[@W" .. srefresh .. "@C] @w>> << Out: @G[@W".. pheal .. "@G] @w| @C[@W" .. prefresh .. "@C] @w>>"
       colorsToAnsiNote(report)
       pheal = 0
       prefresh = 0
       sheal = 0
       srefresh = 0
    end
+
+   sheal_count = 0
+end
+
+function blank_trigger(name, line, args)
+   print("sheal_count: " .. sheal_count)
+   if sheal_count > 0 then
+      DeleteLines(1)
+   end
+end
+
+function full_trigger()
+   sheal_count = 0
 end
 ]]>
 </script>
