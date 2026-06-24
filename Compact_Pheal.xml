@@ -14,22 +14,49 @@
    purpose="Reduce pheal spam"
    date_written="2026-06-19 20:59:14"
    requires="5.07"
-   version="1.1"
+   version="1.2"
+   save_state="y"
    >
    <description trim="y">
       <![CDATA[
       Compact Pheal
       -------
       Reduce pheal spam
+      Type 'cpheal help' for usage
       ]]>
    </description>
 </plugin>
+
+<!--  Timers  -->
+
+<timers>
+   <timer
+      name="pheal_timer"
+      enabled="y"
+      script="pheal_trigger_end"
+      hour="0" minute="0" second="5"
+      active_closed="y" >
+   </timer>
+</timers>
+
+<!--  Aliases  -->
+
+<aliases>
+   <alias match="cpheal on" enabled="y" sequence="99" script="cpheal_enable" />
+   <alias match="cpheal off" enabled="y" sequence="99" script="cpheal_disable" />
+   <alias match="cpheal timer" enabled="y" sequence="101" script="timer_info" />
+   <alias match="cpheal timer on" enabled="y" sequence="99" script="timer_enable" />
+   <alias match="^cpheal timer\s(?<seconds>(\d*))$" regexp="y" enabled="y" sequence="100" script="set_timer" />
+   <alias match="cpheal timer off" enabled="y" sequence="99" script="timer_disable" />
+   <alias match="cpheal help" enabled ="y" sequence="99" script="help" />
+</aliases>
 
 <!-- Triggers -->
 
 <triggers>
    <trigger
       name="pheal_capture"
+      group="cpheal"
       enabled="y"
       match="feels better after your healing"
       regexp="y"
@@ -45,6 +72,7 @@
    </trigger>
    <trigger
       name="prefresh_capture"
+      group="cpheal"
       enabled="y"
       match="feels less tired after your refreshment"
       regexp="y"
@@ -60,6 +88,7 @@
    </trigger>
    <trigger
       name="sheal_capture"
+      group="cpheal"
       enabled="y"
       match="A warm feeling fills your body"
       regexp="y"
@@ -75,6 +104,7 @@
    </trigger>
    <trigger
       name="srefresh_capture"
+      group="cpheal"
       enabled="y"
       match="You feel less tired"
       regexp="y"
@@ -90,7 +120,7 @@
    </trigger>
    <trigger
       name="pheal_end"
-      enabled="y"
+      enabled="n"
       match="^\[.*>$"
       regexp="y"
       omit_from_output="n"
@@ -112,7 +142,11 @@
       sequence="102"
       script="blank_trigger"
       send_to="12"
-   />
+   >
+      <send>
+         EnableTrigger("blank", false)
+      </send>
+   </trigger>
    <trigger
       name="full"
       enabled="n"
@@ -137,14 +171,88 @@
 <![CDATA[
 require 'aardwolf_colors'
 
-pheal = 0
-prefresh = 0
-sheal = 0
-srefresh = 0
-sheal_count = 0
+function init()
+   pheal = 0
+   prefresh = 0
+   sheal = 0
+   srefresh = 0
+   sheal_count = 0
+
+   timer_enabled = GetVariable("timer_enabled") or true
+   timer_enabled = tostring(timer_enabled) == "true"
+
+   timer_seconds = tonumber(GetVariable("timer_seconds")) or 5
+   SetTimerOption("pheal_timer", "second", timer_seconds)
+
+   cpheal_enabled = GetVariable("cpheal_enabled") or true
+   cpheal_enabled = tostring(cpheal_enabled) == "true"
+
+   if cpheal_enabled then
+      cpheal_enable()
+   else
+      cpheal_disable()
+   end
+end
 
 function colorsToAnsiNote(data)
   return AnsiNote(ColoursToANSI(data))
+end
+
+function cpheal_enable()
+   cpheal_enabled = true
+   SetVariable("cpheal_enabled", "true")
+   EnableTriggerGroup("cpheal", true)
+   EnableTimer("pheal_timer", timer_enabled)
+   EnableTrigger("pheal_end", not timer_enabled)
+   print ("Cpheal is enabled.")
+end
+
+function cpheal_disable()
+   cpheal_enabled = false
+   SetVariable("cpheal_enabled", "false")
+   EnableTimer("pheal_timer", false)
+   EnableTriggerGroup("cpheal", false)
+   EnableTrigger("pheal_end", false)
+   EnableTrigger("blank", false)
+   EnableTrigger("full", false)
+   print ("Cpheal is disabled.")
+end
+
+function timer_info()
+   status = ""
+   if timer_enabled then status = "enabled" else status = "disabled" end
+
+   print("The timer is " .. status .. " and set for " .. timer_seconds .. " seconds.")
+end
+
+function timer_enable()
+   timer_enabled = true
+   SetVariable("timer_enabled", "true")
+   EnableTrigger("pheal_end", false)
+   EnableTimer("pheal_timer", true)
+   print("Cpheal timer on. Prompt display off.")
+end
+
+function timer_disable()
+   timer_enabled = false
+   SetVariable("timer_enabled", "false")
+   EnableTrigger("pheal_end", true)
+   EnableTimer("pheal_timer", false)
+   print("Cpheal timer off. Prompt display on.")
+end
+
+function set_timer(name, line, args)
+   if tonumber(args.seconds) ~= nil then
+      timer_enabled = true
+      timer_seconds = args.seconds
+      EnableTrigger("pheal_end", false)
+      EnableTimer("pheal_timer", true)
+      SetTimerOption("pheal_timer", "second", timer_seconds)
+      SetVariable("timer_seconds", timer_seconds)
+      print("Cpheal timer set to: " .. timer_seconds .. " seconds.")
+   else
+      print("Must be in the form: cpheal timer <number of seconds>")
+   end
 end
 
 function pheal_trigger_capture(name, line, args)
@@ -185,14 +293,27 @@ end
 function blank_trigger(name, line, args)
    if sheal_count > 1 then
       DeleteLines(1)
+      PlaySound (1, "waka-waka.wav", false, 0, 0)
    end
 end
 
 function full_trigger()
    sheal_count = 0
 end
+
+function help()
+   print("Compact Pheal")
+   print("cpheal help -> duh")
+   print("cpheal on/off -> duh. on by default")
+   print("cpheal timer -> displays timer status")
+   print("cpheal timer on/off -> turns timed display on and prompt display off, or vice versa - on by default")
+   print("cpheal timer <seconds> -> enables and sets the timer, disables prompt display - 5 by default")
+end
+
+function OnPluginInstall()
+  help()
+  init()
+end
 ]]>
 </script>
-
-
 </muclient>
