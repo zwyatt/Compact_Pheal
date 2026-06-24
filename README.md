@@ -9,6 +9,6 @@ cpheal help
 cpheal on/off  
 cpheal timer -> displays timer status  
 cpheal timer on/off  
-cpheal timer [seconds]
+cpheal timer [seconds] (5 default)
 
 TODO: configurable prompt trigger?
