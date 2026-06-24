@@ -3,11 +3,11 @@ Aardwolf MUSHCLIENT plugin to reduce party heal spam. Condenses all party healin
 
 Place Compact_Pheal.xml in your plugins folder and add it using the Plugins menu (CTRL+SHIFT+P).
 
-Commands:
-cpheal help
-cpheal on/off
-cpheal timer -> displays timer status
-cpheal timer on/off
-cpheal timer <seconds>
+Commands:  
+cpheal help  
+cpheal on/off  
+cpheal timer -> displays timer status  
+cpheal timer on/off  
+cpheal timer <seconds>  
 
 TODO: configurable prompt trigger?
