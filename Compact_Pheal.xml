@@ -14,7 +14,7 @@
    purpose="Reduce pheal spam"
    date_written="2026-06-19 20:59:14"
    requires="5.07"
-   version="1.2"
+   version="1.3"
    save_state="y"
    >
    <description trim="y">
@@ -42,13 +42,14 @@
 <!--  Aliases  -->
 
 <aliases>
-   <alias match="cpheal on" enabled="y" sequence="99" script="cpheal_enable" />
-   <alias match="cpheal off" enabled="y" sequence="99" script="cpheal_disable" />
-   <alias match="cpheal timer" enabled="y" sequence="101" script="timer_info" />
-   <alias match="cpheal timer on" enabled="y" sequence="99" script="timer_enable" />
-   <alias match="^cpheal timer\s(?<seconds>(\d*))$" regexp="y" enabled="y" sequence="100" script="set_timer" />
-   <alias match="cpheal timer off" enabled="y" sequence="99" script="timer_disable" />
-   <alias match="cpheal help" enabled ="y" sequence="99" script="help" />
+   <alias match="cpheal\s(?<cmd>(on|off))" regexp="y" enabled="y" sequence="99" script="cpheal_alias" />
+   <alias match="cpheal timer" enabled="y" sequence="100" script="timer_info_alias" />
+   <alias match="cpheal timer\s(?<cmd>(on|off))" regexp="y" enabled="y" sequence="99" script="timer_alias" />
+   <alias match="^cpheal timer\s(?<seconds>(\d*))$" regexp="y" enabled="y" sequence="100" script="set_timer_alias" />
+   <alias match="^cpheal pacman\s(?<cmd>(on|off))$" regexp="y" enabled="y" sequence="100" script="pacman_alias" />
+   <alias match="^cpheal sound\s(?<cmd>(on|off))$" regexp="y" enabled="y" sequence="100" script="sound_alias" />
+   <alias match="cpheal help" enabled ="y" sequence="100" script="help" />
+   <alias match ="cpheal test\s(?<cmd>(on|off))" regexp="y" enabled="y" sequence="100" script="test_alias" />
 </aliases>
 
 <!-- Triggers -->
@@ -95,13 +96,7 @@
       omit_from_output="y"
       sequence="100"
       script="sheal_trigger_capture"
-      send_to="12"
-   >
-      <send>
-         EnableTrigger("blank", true)
-         EnableTrigger("full", true)
-      </send>
-   </trigger>
+   />
    <trigger
       name="srefresh_capture"
       group="cpheal"
@@ -111,20 +106,14 @@
       omit_from_output="y"
       sequence="100"
       script="srefresh_trigger_capture"
-      send_to="12"
-   >
-      <send>
-         EnableTrigger("blank", false)
-         EnableTrigger("full", false)
-      </send>
-   </trigger>
+   />
    <trigger
       name="pheal_end"
       enabled="n"
       match="^\[.*>$"
       regexp="y"
       omit_from_output="n"
-      sequence="101"
+      sequence="100"
       script="pheal_trigger_end"
       send_to="12"
    >
@@ -135,11 +124,12 @@
    </trigger>
    <trigger
       name="blank"
+      group="pacman"
       enabled="n"
       match="^$"
       regexp="y"
-      omit_from_output="n"
-      sequence="102"
+      omit_from_output="y"
+      sequence="101"
       script="blank_trigger"
       send_to="12"
    >
@@ -149,12 +139,12 @@
    </trigger>
    <trigger
       name="full"
+      group="pacman"
       enabled="n"
       match="^.*$"
       regexp="y"
       omit_from_output="n"
-      sequence="102"
-      script="full_trigger"
+      sequence="101"
       send_to="12"
    >
       <send>
@@ -171,12 +161,31 @@
 <![CDATA[
 require 'aardwolf_colors'
 
+function cpheal_set()
+   EnableTriggerGroup("cpheal", cpheal_enabled)
+
+   if cpheal_enabled then
+      EnableTimer("pheal_timer", timer_enabled)
+      EnableTrigger("pheal_end", not timer_enabled)
+      print ("Cpheal is enabled.")
+   else
+      EnableTimer("pheal_timer", false)
+      EnableTrigger("pheal_end", false)
+      EnableTrigger("blank", false) -- ???
+      EnableTrigger("full", false) -- ???
+      print ("Cpheal is disabled.")
+   end
+end
+
+function pacman_next_blank()
+   EnableTriggerGroup("pacman", pacman_enabled)
+end
+
 function init()
    pheal = 0
    prefresh = 0
    sheal = 0
    srefresh = 0
-   sheal_count = 0
 
    timer_enabled = GetVariable("timer_enabled") or true
    timer_enabled = tostring(timer_enabled) == "true"
@@ -184,95 +193,133 @@ function init()
    timer_seconds = tonumber(GetVariable("timer_seconds")) or 5
    SetTimerOption("pheal_timer", "second", timer_seconds)
 
+   pacman_enabled = GetVariable("pacman_enabled") or true
+   pacman_enabled = tostring(pacman_enabled) == "true"
+
+   sound_enabled = GetVariable("sound_enabled") or false
+   sound_enabled = tostring(sound_enabled) == "true"
+
    cpheal_enabled = GetVariable("cpheal_enabled") or true
    cpheal_enabled = tostring(cpheal_enabled) == "true"
 
-   if cpheal_enabled then
-      cpheal_enable()
-   else
-      cpheal_disable()
-   end
+   test_mode = GetVariable("test_mode") or false
+   test_mode = tostring(test_mode) == "true"
+
+   cpheal_set()
+   timer_info_alias()
 end
 
 function colorsToAnsiNote(data)
   return AnsiNote(ColoursToANSI(data))
 end
 
-function cpheal_enable()
-   cpheal_enabled = true
-   SetVariable("cpheal_enabled", "true")
-   EnableTriggerGroup("cpheal", true)
-   EnableTimer("pheal_timer", timer_enabled)
-   EnableTrigger("pheal_end", not timer_enabled)
-   print ("Cpheal is enabled.")
+function cpheal_alias(name, line, args)
+   cpheal_enabled = args.cmd == "on"
+   SetVariable("cpheal_enabled", tostring(cpheal_enabled))
+   cpheal_set()
 end
 
-function cpheal_disable()
-   cpheal_enabled = false
-   SetVariable("cpheal_enabled", "false")
-   EnableTimer("pheal_timer", false)
-   EnableTriggerGroup("cpheal", false)
-   EnableTrigger("pheal_end", false)
-   EnableTrigger("blank", false)
-   EnableTrigger("full", false)
-   print ("Cpheal is disabled.")
-end
-
-function timer_info()
+function timer_info_alias()
    status = ""
    if timer_enabled then status = "enabled" else status = "disabled" end
 
    print("The timer is " .. status .. " and set for " .. timer_seconds .. " seconds.")
 end
 
-function timer_enable()
-   timer_enabled = true
-   SetVariable("timer_enabled", "true")
-   EnableTrigger("pheal_end", false)
-   EnableTimer("pheal_timer", true)
-   print("Cpheal timer on. Prompt display off.")
+function timer_alias(name, line, args)
+   timer_enabled = args.cmd == "on"
+   SetVariable("timer_enabled", tostring(timer_enabled))
+   EnableTimer("pheal_timer", timer_enabled)
+   EnableTrigger("pheal_end", not timer_enabled)
+
+   if timer_enabled then
+      print("Cpheal timer on. Prompt display off.")
+   else
+      print("Cpheal timer off. Prompt display on.")
+   end
 end
 
-function timer_disable()
-   timer_enabled = false
-   SetVariable("timer_enabled", "false")
-   EnableTrigger("pheal_end", true)
-   EnableTimer("pheal_timer", false)
-   print("Cpheal timer off. Prompt display on.")
-end
-
-function set_timer(name, line, args)
-   if tonumber(args.seconds) ~= nil then
+function set_timer_alias(name, line, args)
+   if tonumber(args.seconds) ~= nil and tonumber(args.seconds) > 0 then
       timer_enabled = true
+      SetVariable("timer_enabled", "true")
+      SetVariable("timer_seconds", timer_seconds)
       timer_seconds = args.seconds
       EnableTrigger("pheal_end", false)
       EnableTimer("pheal_timer", true)
       SetTimerOption("pheal_timer", "second", timer_seconds)
-      SetVariable("timer_seconds", timer_seconds)
       print("Cpheal timer set to: " .. timer_seconds .. " seconds.")
    else
-      print("Must be in the form: cpheal timer <number of seconds>")
+      print("Must be in the form: cpheal timer <seconds > 0>")
    end
 end
 
+function pacman_alias(name, line, args)
+   pacman_enabled = args.cmd == "on"
+   SetVariable("pacman_enabled", tostring(pacman_enabled))
+   if pacman_enabled then
+      print ("Cpheal pacman will eat blank lines between received pheals.")
+   else
+      print("Cpheal pacman no longer eats blank lines between received pheals.")
+   end
+end
+
+function sound_alias(name, line, args)
+   sound_enabled = args.cmd == "on"
+   SetVariable("sound_enabled", tostring(sound_enabled))
+   if sound_enabled then
+      print("Cpheal pacman waka-waka!")
+   else
+      print("Cpheal pacman no waka-waka...")
+   end
+end
+
+function help()
+   print("Compact Pheal")
+   print("cpheal help")
+   print("cpheal on/off -> [default on]")
+   print("cpheal timer -> displays timer status")
+   print("cpheal timer on/off -> toggles timed display/prompt display [default timer on]")
+   print("cpheal timer # -> enables and sets the timer [default 5 seconds]")
+   print("cpheal pacman on/off -> toggle eating blank lines between received pheals [default on]")
+   print("cpheal sound on/off -> toggle waka-waka [default off]")
+   print("cpheal test on/off -> displays omitted lines to see what it's doing [default off]")
+end
+
+function test_alias(name, line, args)
+   test_mode = args.cmd == "on"
+   SetVariable("test_mode", tostring(test_mode))
+   print("Cpheal test mode: " .. args.cmd)
+end
+
 function pheal_trigger_capture(name, line, args)
+   if test_mode then
+      print(line)
+   end
    pheal = pheal + string.match(line, "%[(%d*)]$")
-   sheal_count = 0
 end
 
 function prefresh_trigger_capture(name, line, args)
+   if test_mode then
+      print(line)
+   end
    prefresh = prefresh + string.match(line, "%[(%d*)]$")
-   sheal_count = 0
 end
 
 function sheal_trigger_capture(name, line, args)
+   pacman_next_blank()
+   if test_mode then
+      print(line)
+   end
    sheal = sheal + string.match(line, "%[(%d*)]$")
-   sheal_count = sheal_count + 1
 end
 
 function srefresh_trigger_capture(name, line, args)
+   pacman_next_blank()
+   if test_mode then
+      print(line)
+   end
    srefresh = srefresh + string.match(line, "%[(%d*)]$")
-   sheal_count = 0
 end
 
 function pheal_trigger_end()
@@ -286,28 +333,15 @@ function pheal_trigger_end()
       sheal = 0
       srefresh = 0
    end
-
-   sheal_count = 0
 end
 
 function blank_trigger(name, line, args)
-   if sheal_count > 1 then
-      DeleteLines(1)
+   if test_mode then
+      print("pacman ate: " .. line)
+   end
+   if sound_enabled then
       PlaySound (1, "waka-waka.wav", false, 0, 0)
    end
-end
-
-function full_trigger()
-   sheal_count = 0
-end
-
-function help()
-   print("Compact Pheal")
-   print("cpheal help -> duh")
-   print("cpheal on/off -> duh. on by default")
-   print("cpheal timer -> displays timer status")
-   print("cpheal timer on/off -> turns timed display on and prompt display off, or vice versa - on by default")
-   print("cpheal timer <seconds> -> enables and sets the timer, disables prompt display - 5 by default")
 end
 
 function OnPluginInstall()
