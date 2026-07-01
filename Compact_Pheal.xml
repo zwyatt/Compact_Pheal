@@ -190,7 +190,7 @@ function init()
    timer_enabled = GetVariable("timer_enabled") or true
    timer_enabled = tostring(timer_enabled) == "true"
 
-   timer_seconds = tonumber(GetVariable("timer_seconds")) or 5
+   timer_seconds = tonumber(GetVariable("timer_seconds")) or 3
    SetTimerOption("pheal_timer", "second", timer_seconds)
 
    pacman_enabled = GetVariable("pacman_enabled") or true
