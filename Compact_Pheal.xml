@@ -242,6 +242,7 @@ end
 function set_timer_alias(name, line, args)
    if tonumber(args.seconds) ~= nil and tonumber(args.seconds) > 0 then
       timer_enabled = true
+      timer_seconds = args.seconds
       SetVariable("timer_enabled", "true")
       SetVariable("timer_seconds", timer_seconds)
       timer_seconds = args.seconds
@@ -280,7 +281,7 @@ function help()
    print("cpheal on/off -> [default on]")
    print("cpheal timer -> displays timer status")
    print("cpheal timer on/off -> toggles timed display/prompt display [default timer on]")
-   print("cpheal timer # -> enables and sets the timer [default 5 seconds]")
+   print("cpheal timer # -> enables and sets the timer [default 3 seconds]")
    print("cpheal pacman on/off -> toggle eating blank lines between received pheals [default on]")
    print("cpheal sound on/off -> toggle waka-waka [default off]")
    print("cpheal test on/off -> displays omitted lines to see what it's doing [default off]")
