@@ -13,7 +13,4 @@ cpheal timer on/off  -> switch between timer and prompt display [default on]
 cpheal timer # -> set timer in seconds [default 5]  
 cpheal pacman on/off -> toggle omission of blank lines between received pheals [default on]  
 cpheal sound on/off -> toggle waka-waka [default off]  
-cpheal test on/off -> toggle test mode [default off]  
-
-TODO: 
-- configurable prompt trigger?
+cpheal test on/off -> toggle test mode [default off]
