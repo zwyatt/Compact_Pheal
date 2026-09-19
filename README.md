@@ -8,7 +8,7 @@ Place waka-waka.wav in your sounds folder. Or don't.
 Commands:  
 cpheal help  
 cpheal on/off [default on]  
-cpheal timer -> displays timer status 
+cpheal timer -> displays timer status  
 cpheal timer on/off  -> switch between timer and prompt display [default on]  
 cpheal timer # -> set timer in seconds [default 3]  
 cpheal pacman on/off -> toggle omission of blank lines between received pheals [default on]  
