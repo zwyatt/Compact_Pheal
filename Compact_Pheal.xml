@@ -91,7 +91,7 @@
       name="sheal_capture"
       group="cpheal"
       enabled="y"
-      match="A warm feeling fills your body. \[\d+\]$"
+      match="^A warm feeling fills your body. \[\d+\]$"
       regexp="y"
       omit_from_output="y"
       sequence="100"
